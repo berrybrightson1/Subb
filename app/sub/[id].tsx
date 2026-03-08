@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Clock,
   CreditCard,
+  Lock,
   Pencil,
   RotateCcw,
   Smartphone,
@@ -20,16 +21,18 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Reanimated, { FadeInUp, ZoomIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text } from '../../components/Text';
 import { SettingGroup } from '../../components/ui/SettingGroup';
 import { SettingRow } from '../../components/ui/SettingRow';
 import { useAppSettings } from '../../contexts/AppContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useIsPro } from '../../hooks/useIsPro';
 import { useSubscriptions } from '../../hooks/useSubscriptions';
 import { ThemeColors } from '../../lib/theme';
 import { toast } from '../../lib/toast';
@@ -119,7 +122,6 @@ const fiStyles = StyleSheet.create({
   floatLabel: {
     position: 'absolute',
     left: 16,
-    fontWeight: '500',
   },
   row: { flexDirection: 'row', alignItems: 'center' },
   prefix: { fontSize: 16, marginRight: 2 },
@@ -176,7 +178,7 @@ function DatePickerModal({
   return (
     <View style={dpStyles.overlay}>
       <TouchableOpacity style={dpStyles.backdrop} activeOpacity={1} onPress={onCancel} />
-      <View style={[dpStyles.sheet, { backgroundColor: colors.card, paddingBottom: insets.bottom + 8 }]}>
+      <View style={[dpStyles.sheet, { backgroundColor: colors.modal, paddingBottom: insets.bottom + 8 }]}>
         <View style={[dpStyles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={onCancel}>
             <Text style={[dpStyles.cancel, { color: colors.muted }]}>Cancel</Text>
@@ -222,8 +224,6 @@ const dpStyles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   cancel: { fontSize: 16 },
-  title: { fontSize: 16, fontWeight: '600' },
-  done: { fontSize: 16, fontWeight: '700' },
   wheels: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 24, gap: 8 },
   wheel: {
     flex: 1,
@@ -235,7 +235,6 @@ const dpStyles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   arrow: { padding: 4 },
-  value: { fontSize: 18, fontWeight: '700', textAlign: 'center', flex: 1 },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -250,7 +249,10 @@ export default function SubDetailScreen() {
   const s = useMemo(() => makeStyles(colors), [colors]);
 
   const sub = subscriptions.find(s => s.id === id);
+  const { isPro } = useIsPro(user?.uid);
 
+  // Track if fetching
+  const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
   const [cost, setCost] = useState('');
@@ -342,12 +344,14 @@ export default function SubDetailScreen() {
 
   if (!sub) {
     return (
-      <SafeAreaView style={s.container}>
-        <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-          <ChevronLeft color={colors.text} size={22} />
-          <Text style={s.backLabel}>Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <View style={s.container}>
+        <View style={[s.header, { paddingTop: insets.top }]}>
+          <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+            <ChevronLeft color={colors.text} size={22} />
+            <Text variant="brand" style={s.backLabel}>Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   }
 
@@ -361,19 +365,18 @@ export default function SubDetailScreen() {
   // ── EDIT MODE ──────────────────────────────────────────────────────────────
   if (isEditing) {
     return (
-      <SafeAreaView style={s.container}>
+      <View style={s.container}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
           {/* Header */}
-          <View style={s.header}>
+          <View style={[s.header, { paddingTop: insets.top }]}>
             <TouchableOpacity onPress={handleCancel}>
-              <Text style={[s.headerAction, { color: colors.muted }]}>Cancel</Text>
+              <Text variant="brand" style={[s.headerAction, { color: colors.muted }]}>Cancel</Text>
             </TouchableOpacity>
-            <Text style={s.headerTitle}>Edit</Text>
+            <Text variant="display" style={s.headerTitle}>Edit</Text>
             <TouchableOpacity onPress={handleSave}>
-              <Text style={[s.headerAction, { color: colors.accent, fontWeight: '700' }]}>Save</Text>
             </TouchableOpacity>
           </View>
 
@@ -409,25 +412,25 @@ export default function SubDetailScreen() {
                   style={[s.cycleBtn, cycle === 'Mo' && { backgroundColor: colors.accent }]}
                   onPress={() => setCycle('Mo')}
                 >
-                  <Text style={[s.cycleTxt, { color: cycle === 'Mo' ? '#fff' : colors.muted }]}>Monthly</Text>
+                  <Text variant="brand" style={[s.cycleTxt, { color: cycle === 'Mo' ? '#fff' : colors.muted }]}>Monthly</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[s.cycleBtn, cycle === 'Yr' && { backgroundColor: colors.accent }]}
                   onPress={() => setCycle('Yr')}
                 >
-                  <Text style={[s.cycleTxt, { color: cycle === 'Yr' ? '#fff' : colors.muted }]}>Yearly</Text>
+                  <Text variant="brand" style={[s.cycleTxt, { color: cycle === 'Yr' ? '#fff' : colors.muted }]}>Yearly</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Date */}
             <View style={s.fieldGroup}>
-              <Text style={[s.fieldLabel, { color: colors.muted }]}>
+              <Text variant="brand" style={[s.fieldLabel, { color: colors.muted }]}>
                 {isTrial ? 'Trial Ends' : 'Next Billing Date'}
               </Text>
               <TouchableOpacity style={[s.dateBtn, { backgroundColor: colors.card }]} onPress={() => setPickerOpen(true)}>
                 <CalendarDays color={isTrial ? colors.danger : colors.accent} size={18} />
-                <Text style={[s.dateTxt, { color: isTrial ? colors.danger : colors.text }]}>
+                <Text variant="sansBold" style={[s.dateTxt, { color: isTrial ? colors.danger : colors.text }]}>
                   {fmtDate(billingDate)}
                 </Text>
                 <Text style={[s.dateCaret, { color: colors.muted }]}>›</Text>
@@ -441,8 +444,8 @@ export default function SubDetailScreen() {
                   <Clock color={colors.danger} size={20} strokeWidth={2} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.trialTitle, { color: colors.text }]}>Free Trial</Text>
-                  <Text style={[s.trialSub, { color: colors.muted }]}>
+                  <Text variant="brand" style={[s.trialTitle, { color: colors.text }]}>Free Trial</Text>
+                  <Text variant="sans" style={[s.trialSub, { color: colors.muted }]}>
                     {isTrial ? 'Alert fires before conversion' : 'Standard subscription'}
                   </Text>
                 </View>
@@ -477,15 +480,15 @@ export default function SubDetailScreen() {
           onCancel={() => setPickerOpen(false)}
           colors={colors}
         />
-      </SafeAreaView>
+      </View>
     );
   }
 
   // ── VIEW MODE ──────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={s.container}>
+    <View style={s.container}>
       {/* Header */}
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
           <ChevronLeft color={colors.text} size={22} />
           <Text style={s.backLabel}>Back</Text>
@@ -495,7 +498,7 @@ export default function SubDetailScreen() {
           onPress={() => setIsEditing(true)}
         >
           <Pencil color={colors.accent} size={14} />
-          <Text style={[s.editChipText, { color: colors.accent }]}>Edit</Text>
+          <Text variant="brand" style={[s.editChipText, { color: colors.accent }]}>Edit</Text>
         </TouchableOpacity>
       </View>
 
@@ -504,14 +507,20 @@ export default function SubDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Hero Area */}
-        <View style={[s.heroContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={[s.heroIconBox, { backgroundColor: sub.isTrial ? colors.dangerMuted : colors.accentMuted }]}>
+        <Reanimated.View
+          entering={ZoomIn.springify().damping(14).stiffness(110)}
+          style={[s.heroContainer, { backgroundColor: colors.card, borderColor: colors.border }]}
+        >
+          <Reanimated.View
+            entering={FadeInUp.springify().damping(18).delay(80)}
+            style={[s.heroIconBox, { backgroundColor: sub.isTrial ? colors.dangerMuted : colors.accentMuted }]}
+          >
             {getServiceIcon(sub.name, 36)}
-          </View>
-          <Text style={[s.heroName, { color: colors.text }]}>{sub.name}</Text>
-          <Text style={[s.heroCost, { color: colors.text }]}>
+          </Reanimated.View>
+          <Text variant="display" style={[s.heroName, { color: colors.text }]}>{sub.name}</Text>
+          <Text variant="sansBold" style={[s.heroCost, { color: colors.text }]}>
             {formatCurrency(sub.cost, currency)}
-            <Text style={[s.heroFreq, { color: colors.muted }]}> / {sub.billingCycle === 'Mo' ? 'mo' : 'yr'}</Text>
+            <Text variant="sans" style={[s.heroFreq, { color: colors.muted }]}> / {sub.billingCycle === 'Mo' ? 'mo' : 'yr'}</Text>
           </Text>
 
           <View style={[s.statusBadge, {
@@ -519,7 +528,7 @@ export default function SubDetailScreen() {
               : sub.status === 'pending_action' ? 'rgba(245,158,11,0.1)'
                 : sub.isTrial ? colors.dangerMuted : colors.accentMuted
           }]}>
-            <Text style={[s.statusText, {
+            <Text variant="brand" style={[s.statusText, {
               color: sub.status === 'cancelled' ? '#6B7280'
                 : sub.status === 'pending_action' ? '#F59E0B'
                   : sub.isTrial ? colors.danger : colors.accent
@@ -529,7 +538,7 @@ export default function SubDetailScreen() {
                   : sub.isTrial ? 'Trialing' : 'Active Subscription'}
             </Text>
           </View>
-        </View>
+        </Reanimated.View>
 
         {/* Subscription Details Group */}
         <SettingGroup label="Subscription Info" colors={colors}>
@@ -538,17 +547,24 @@ export default function SubDetailScreen() {
             icon={<CalendarDays size={18} color="#fff" />}
             iconBg={sub.isTrial ? colors.danger : colors.accent}
             subLabel={fmtDate((sub.isTrial ? sub.trialEndDate : sub.nextBillingDate)?.toDate?.() ?? new Date())}
-            rightContent={<Text style={[s.detailValue, { color: colors.text }]}>{billingLabel}</Text>}
+            rightContent={<Text variant="sansBold" style={[s.detailValue, { color: colors.text }]}>{billingLabel}</Text>}
             colors={colors}
             showArrow={false}
           />
           <SettingRow
             label="Alert Offset"
             icon={<Clock size={18} color="#fff" />}
-            iconBg="#F59E0B"
+            iconBg={isPro ? "#F59E0B" : "#64748B"}
             subLabel={`Notify ${sub.remindMeDaysBefore} days before`}
+            rightContent={!isPro ? <Lock size={14} color={colors.muted} /> : undefined}
             colors={colors}
             showArrow={false}
+            onPress={() => {
+              if (!isPro) {
+                toast.info('Custom alerts are a Pro feature');
+                router.push('/paywall');
+              }
+            }}
           />
           <SettingRow
             label="Billing Cycle"
@@ -564,8 +580,8 @@ export default function SubDetailScreen() {
         {/* Cycle Progress Card */}
         <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={s.cardHeader}>
-            <Text style={[s.cardTitle, { color: colors.muted }]}>Current Cycle Progress</Text>
-            <Text style={[s.cardPct, { color: progressColor }]}>{Math.round(progress)}%</Text>
+            <Text variant="brand" style={[s.cardTitle, { color: colors.muted }]}>Current Cycle Progress</Text>
+            <Text variant="sansBold" style={[s.cardPct, { color: progressColor }]}>{Math.round(progress)}%</Text>
           </View>
           <View style={[s.progBg, { backgroundColor: colors.cardAlt }]}>
             <View style={[s.progFill, { width: `${progress}%`, backgroundColor: progressColor }]} />
@@ -596,36 +612,32 @@ export default function SubDetailScreen() {
 
         {/* Confirmation Overlays (keeping the existing confirm zones for now but adding spacing) */}
         {confirmCancel && (
-          <View style={[s.confirmOverlay, { backgroundColor: colors.card, borderColor: '#F59E0B' }]}>
-            <Text style={[s.confirmTitle, { color: colors.text }]}>Cancel {sub.name}?</Text>
-            <Text style={[s.confirmSub, { color: colors.muted }]}>Moves to History. You can restore it later.</Text>
+          <View style={[s.confirmOverlay, { backgroundColor: colors.modal, borderColor: '#F59E0B' }]}>
+            <Text variant="display" style={[s.confirmTitle, { color: colors.text }]}>Cancel {sub.name}?</Text>
+            <Text variant="sans" style={[s.confirmSub, { color: colors.muted }]}>Moves to History. You can restore it later.</Text>
             <View style={s.confirmActions}>
               <TouchableOpacity style={[s.confBtn, { backgroundColor: colors.cardAlt }]} onPress={() => setConfirmCancel(false)}>
-                <Text style={{ color: colors.text, fontWeight: '600' }}>Keep it</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.confBtn, { backgroundColor: '#F59E0B' }]} onPress={handleCancelSub}>
-                <Text style={{ color: '#fff', fontWeight: '700' }}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
 
         {confirmDelete && (
-          <View style={[s.confirmOverlay, { backgroundColor: colors.card, borderColor: colors.danger }]}>
-            <Text style={[s.confirmTitle, { color: colors.text }]}>Delete {sub.name}?</Text>
-            <Text style={[s.confirmSub, { color: colors.muted }]}>This action cannot be undone.</Text>
+          <View style={[s.confirmOverlay, { backgroundColor: colors.modal, borderColor: colors.danger }]}>
+            <Text variant="display" style={[s.confirmTitle, { color: colors.text }]}>Delete {sub.name}?</Text>
+            <Text variant="sans" style={[s.confirmSub, { color: colors.muted }]}>This action cannot be undone.</Text>
             <View style={s.confirmActions}>
               <TouchableOpacity style={[s.confBtn, { backgroundColor: colors.cardAlt }]} onPress={() => setConfirmDelete(false)}>
-                <Text style={{ color: colors.text, fontWeight: '600' }}>Keep it</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.confBtn, { backgroundColor: colors.danger }]} onPress={handleDelete}>
-                <Text style={{ color: '#fff', fontWeight: '700' }}>Delete</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -633,7 +645,6 @@ function DetailRow({ label, value, colors }: { label: string; value: string; col
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14 }}>
       <Text style={{ color: colors.muted, fontSize: 14 }}>{label}</Text>
-      <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>{value}</Text>
     </View>
   );
 }
@@ -649,7 +660,6 @@ function makeStyles(colors: ThemeColors) {
       paddingTop: 8,
       paddingBottom: 12,
     },
-    headerTitle: { color: colors.text, fontSize: 17, fontWeight: '600' },
     headerAction: { fontSize: 16 },
     backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     backLabel: { color: colors.text, fontSize: 16 },
@@ -661,7 +671,6 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: 8,
       borderRadius: 20,
     },
-    editChipText: { fontSize: 14, fontWeight: '600' },
 
     // View mode premium
     viewScroll: { paddingHorizontal: 20, paddingTop: 16, gap: 20 },
@@ -679,19 +688,12 @@ function makeStyles(colors: ThemeColors) {
       justifyContent: 'center',
       marginBottom: 16,
     },
-    heroName: { fontSize: 24, fontWeight: '700', letterSpacing: -0.5, marginBottom: 4 },
-    heroCost: { fontSize: 36, fontWeight: '800', letterSpacing: -1, marginBottom: 12 },
-    heroFreq: { fontSize: 16, fontWeight: '400' },
     statusBadge: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12 },
-    statusText: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
 
-    detailValue: { fontSize: 15, fontWeight: '700' },
 
     // Card/Progress
     card: { borderRadius: 24, padding: 20, borderWidth: 1 },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    cardTitle: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-    cardPct: { fontSize: 15, fontWeight: '800' },
     progBg: { height: 8, borderRadius: 4, overflow: 'hidden' },
     progFill: { height: '100%', borderRadius: 4 },
 
@@ -702,7 +704,6 @@ function makeStyles(colors: ThemeColors) {
       marginTop: 8,
       gap: 12,
     },
-    confirmTitle: { fontSize: 18, fontWeight: '700' },
     confirmSub: { fontSize: 14, lineHeight: 20 },
     confirmActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
     confBtn: { flex: 1, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
@@ -712,7 +713,6 @@ function makeStyles(colors: ThemeColors) {
     fieldGroup: { marginBottom: 14 },
     fieldLabel: {
       fontSize: 11,
-      fontWeight: '700',
       letterSpacing: 0.8,
       textTransform: 'uppercase',
       marginBottom: 8,
@@ -725,7 +725,6 @@ function makeStyles(colors: ThemeColors) {
       gap: 4,
     },
     cycleBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
-    cycleTxt: { fontSize: 13, fontWeight: '600' },
     dateBtn: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -746,7 +745,6 @@ function makeStyles(colors: ThemeColors) {
     },
     trialLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     trialBadge: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-    trialTitle: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
     trialSub: { fontSize: 12 },
   });
 }

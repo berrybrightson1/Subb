@@ -25,7 +25,6 @@ const s = StyleSheet.create({
     },
     label: {
         fontSize: 12,
-        fontWeight: '600',
         letterSpacing: 1,
         marginBottom: 8,
         marginLeft: 4,

@@ -62,7 +62,7 @@ export function GhostInsightModal({ visible, sub, currency, onCancel, onKeep }: 
                 <Animated.View
                     style={[
                         styles.sheet,
-                        { backgroundColor: colors.card, paddingBottom: insets.bottom + 20 },
+                        { backgroundColor: colors.modal, paddingBottom: insets.bottom + 20 },
                         sheetStyle,
                     ]}
                 >
@@ -87,7 +87,7 @@ export function GhostInsightModal({ visible, sub, currency, onCancel, onKeep }: 
                     </View>
 
                     {/* Insight Card */}
-                    <View style={[styles.insightCard, { backgroundColor: colors.bg }]}>
+                    <View style={[styles.insightCard, { backgroundColor: colors.cardAlt }]}>
                         <View style={styles.insightRow}>
                             <TrendingDown color="#EF4444" size={18} strokeWidth={2} />
                             <Text style={[styles.insightLabel, { color: colors.muted }]}>Potential yearly waste</Text>
@@ -106,8 +106,7 @@ export function GhostInsightModal({ visible, sub, currency, onCancel, onKeep }: 
                     </View>
 
                     <Text style={[styles.suggestion, { color: colors.muted }]}>
-                        You haven't used <Text style={{ color: colors.text, fontWeight: '700' }}>{sub.name}</Text> in
-                        over a month. Cancelling it could save you money you're not spending.
+                        over a month. Cancelling it could save you money you&apos;re not spending.
                     </Text>
 
                     {/* CTAs */}
@@ -166,7 +165,6 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 17,
-        fontWeight: '700',
         marginBottom: 2,
     },
     subtitle: {
@@ -195,7 +193,6 @@ const styles = StyleSheet.create({
     },
     insightValue: {
         fontSize: 15,
-        fontWeight: '700',
     },
     divider: {
         height: 1,
@@ -215,7 +212,6 @@ const styles = StyleSheet.create({
     cancelBtnText: {
         color: '#fff',
         fontSize: 15,
-        fontWeight: '700',
     },
     keepBtn: {
         alignItems: 'center',
@@ -226,6 +222,5 @@ const styles = StyleSheet.create({
     },
     keepBtnText: {
         fontSize: 15,
-        fontWeight: '600',
     },
 });

@@ -35,7 +35,9 @@ export function useIsPro(userId?: string) {
         try {
             // 1. Try RevenueCat first
             if (Purchases) {
-                Purchases.configure({ apiKey: REVENUECAT_API_KEY });
+                if (!Purchases.isConfigured) {
+                    Purchases.configure({ apiKey: REVENUECAT_API_KEY });
+                }
 
                 if (userId) {
                     await Purchases.logIn(userId);
@@ -89,7 +91,16 @@ export function useIsPro(userId?: string) {
     }, [userId]);
 
     const restorePurchases = useCallback(async () => {
-        if (!Purchases) return;
+        // Dev toggle: if no Purchases (Expo Go) or we're in __DEV__, toggle local status
+        if (!Purchases || __DEV__) {
+            const nextStatus = !isPro;
+            setIsPro(nextStatus);
+            if (userId) {
+                await setDoc(doc(db, 'users', userId), { isPro: nextStatus }, { merge: true });
+            }
+            return;
+        }
+
         try {
             const info = await Purchases.restorePurchases();
             const active = info.entitlements.active[PRO_ENTITLEMENT];
@@ -99,7 +110,7 @@ export function useIsPro(userId?: string) {
         } catch {
             // silent
         }
-    }, [onPurchaseSuccess]);
+    }, [Purchases, isPro, userId, onPurchaseSuccess]);
 
     return { isPro, loading, onPurchaseSuccess, restorePurchases };
 }

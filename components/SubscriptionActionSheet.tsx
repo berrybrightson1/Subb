@@ -101,7 +101,7 @@ export function SubscriptionActionSheet({ visible, sub, userId, onRenew, onCance
             </Animated.View>
 
             {/* Sheet */}
-            <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + 16, backgroundColor: colors.card }, sheetStyle]}>
+            <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + 16, backgroundColor: colors.modal }, sheetStyle]}>
                 {/* Handle */}
                 <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
@@ -207,10 +207,6 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         borderRadius: 8,
     },
-    badgeText: { color: '#F59E0B', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-    subName: { fontSize: 22, fontWeight: '800', marginBottom: 4, letterSpacing: -0.3 },
-    subCost: { fontSize: 18, fontWeight: '700', marginBottom: 10 },
-    subFreq: { fontSize: 14, fontWeight: '400' },
     subHint: { fontSize: 14, lineHeight: 20, marginBottom: 20 },
     divider: { height: 1, marginBottom: 16 },
     actionBtn: {
@@ -222,7 +218,6 @@ const styles = StyleSheet.create({
         padding: 16,
         marginBottom: 12,
     },
-    actionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 2 },
     actionSub: { fontSize: 13 },
     dismissBtn: { alignItems: 'center', paddingVertical: 12 },
     dismissText: { fontSize: 15 },

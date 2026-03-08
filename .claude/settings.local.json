@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(do sed:*)",
+      "Bash(sed:*)",
+      "WebFetch(domain:3dicons.co)",
+      "Bash(curl:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

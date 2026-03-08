@@ -1,16 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
-import { deleteUser, signOut, updateProfile } from 'firebase/auth';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { signOut, updateProfile } from 'firebase/auth';
 import {
     Bell,
     CircleDollarSign,
     Crown,
     Download,
     Languages,
-    Lock,
+    LifeBuoy,
     LogOut,
-    Mail,
     Minus,
     Moon,
     Palette,
@@ -20,22 +19,21 @@ import {
     SunMoon,
     Trash2
 } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
+    Linking,
     ScrollView,
     Share,
     StyleSheet,
     Switch,
-    Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AvatarPicker } from '../../components/AvatarPicker';
-import { Paywall } from '../../components/Paywall';
-import { SecureDeleteModal } from '../../components/SecureDeleteModal';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text } from '../../components/Text';
 import { UserAvatar } from '../../components/UserAvatar';
 import { SettingGroup } from '../../components/ui/SettingGroup';
 import { SettingRow } from '../../components/ui/SettingRow';
@@ -87,25 +85,24 @@ export default function SettingsScreen() {
     const { incognito, enableIncognito, disableIncognito } = useIncognito();
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const [paywallVisible, setPaywallVisible] = useState(false);
-
-    const [deleteVisible, setDeleteVisible] = useState(false);
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState('');
     const [nameDraft, setNameDraft] = useState('');
     const [goal, setGoal] = useState<GoalType | null>(null);
     const [avatarId, setAvatarId] = useState<string | null>(null);
-    const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);
     const nameInputRef = useRef<TextInput>(null);
 
     useEffect(() => {
         AsyncStorage.getItem('userGoal').then(g => {
             if (g) setGoal(g as GoalType);
         });
+    }, []);
+
+    useFocusEffect(useCallback(() => {
         AsyncStorage.getItem('userAvatarId').then(id => {
             if (id) setAvatarId(id);
         });
-    }, []);
+    }, []));
 
     useEffect(() => {
         if (!loading && !user) router.replace('/auth');
@@ -157,12 +154,6 @@ export default function SettingsScreen() {
     };
 
     // ── Avatar picker ─────────────────────────────────────────────────────────
-    const handleAvatarSelected = async (id: string) => {
-        setAvatarId(id);
-        await AsyncStorage.setItem('userAvatarId', id);
-        toast.profile('Avatar updated!');
-    };
-
     // ── Account actions ───────────────────────────────────────────────────────
     const handleSignOut = async () => {
         try {
@@ -170,18 +161,6 @@ export default function SettingsScreen() {
             toast.success('Signed out');
         } catch {
             toast.error('Failed to sign out');
-        }
-    };
-
-    const handleDeleteAccount = async () => {
-        try {
-            if (!auth.currentUser) throw new Error('No user');
-            await deleteUser(auth.currentUser);
-            setDeleteVisible(false);
-            toast.success('Account deleted');
-        } catch (e: any) {
-            setDeleteVisible(false);
-            toast.error(e.message || 'Failed to delete account');
         }
     };
 
@@ -199,11 +178,26 @@ export default function SettingsScreen() {
         }
     };
 
+    // Screen fade-in on tab focus
+    const screenOpacity = useSharedValue(0);
+    const screenY       = useSharedValue(10);
+    useFocusEffect(
+        useCallback(() => {
+            screenOpacity.value = withTiming(1, { duration: 260 });
+            screenY.value       = withTiming(0, { duration: 260 });
+            return () => { screenOpacity.value = 0; screenY.value = 10; };
+        }, [])
+    );
+    const screenStyle = useAnimatedStyle(() => ({
+        opacity:   screenOpacity.value,
+        transform: [{ translateY: screenY.value }],
+    }));
+
     if (loading || !user) {
         return (
-            <SafeAreaView style={[styles.container, styles.centered]}>
+            <View style={[styles.container, styles.centered]}>
                 <ActivityIndicator size="large" color={VIOLET} />
-            </SafeAreaView>
+            </View>
         );
     }
 
@@ -211,9 +205,9 @@ export default function SettingsScreen() {
     const gm = goal ? GOAL_META[goal] : null;
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
+        <Animated.View style={[styles.container, { backgroundColor: colors.bg }, screenStyle]}>
             <ScrollView
-                contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]}
+                contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 40 }]}
                 showsVerticalScrollIndicator={false}
             >
                 {/* ── Profile Header ────────────────────────────────────────── */}
@@ -222,7 +216,7 @@ export default function SettingsScreen() {
                         avatarId={avatarId}
                         displayName={displayName}
                         size={90}
-                        onPress={() => setAvatarPickerVisible(true)}
+                        onPress={() => router.push('/avatar-picker')}
                     />
                     <View style={styles.headerTexts}>
                         {editingName ? (
@@ -243,29 +237,29 @@ export default function SettingsScreen() {
                             </View>
                         ) : (
                             <TouchableOpacity onPress={startEdit} style={styles.nameButton}>
-                                <Text style={[styles.displayName, { color: colors.text }]}>{displayName}</Text>
+                                <Text variant="display" style={[styles.displayName, { color: colors.text }]}>{displayName}</Text>
                             </TouchableOpacity>
                         )}
                         {/* ── Pro Badge ────────────────────────────────────────────── */}
                         {isPro ? (
                             <View style={[styles.proBadge, { backgroundColor: 'rgba(139,92,246,0.12)', borderColor: 'rgba(139,92,246,0.3)' }]}>
                                 <Crown color={VIOLET} size={13} strokeWidth={2.5} />
-                                <Text style={[styles.proBadgeText, { color: VIOLET }]}>Subb Pro</Text>
+                                <Text variant="brand" style={[styles.proBadgeText, { color: VIOLET }]}>Subb Pro</Text>
                             </View>
                         ) : (
                             <TouchableOpacity
                                 style={[styles.proBadge, { backgroundColor: 'rgba(139,92,246,0.06)', borderColor: 'rgba(139,92,246,0.15)' }]}
-                                onPress={() => setPaywallVisible(true)}
+                                onPress={() => router.push('/paywall')}
                                 activeOpacity={0.8}
                             >
                                 <Crown color="rgba(139,92,246,0.5)" size={13} strokeWidth={2.5} />
-                                <Text style={[styles.proBadgeText, { color: 'rgba(139,92,246,0.5)' }]}>Upgrade to Pro</Text>
+                                <Text variant="brand" style={[styles.proBadgeText, { color: 'rgba(139,92,246,0.5)' }]}>Upgrade to Pro</Text>
                             </TouchableOpacity>
                         )}
-                        <Text style={[styles.email, { color: colors.muted }]}>{user.email}</Text>
+                        <Text variant="sans" style={[styles.email, { color: colors.muted }]}>{user.email}</Text>
                         {gm && (
                             <View style={[styles.goalBadge, { backgroundColor: gm.bg, borderColor: gm.border }]}>
-                                <Text style={[styles.goalBadgeText, { color: gm.color }]}>{gm.label}</Text>
+                                <Text variant="brand" style={[styles.goalBadgeText, { color: gm.color }]}>{gm.label}</Text>
                             </View>
                         )}
                     </View>
@@ -274,18 +268,18 @@ export default function SettingsScreen() {
                 {/* ── Stats Summary ────────────────────────────────────────── */}
                 <View style={[styles.statsBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <View style={styles.stat}>
-                        <Text style={[styles.statValue, { color: colors.text }]}>{activeSubs.length}</Text>
-                        <Text style={[styles.statLabel, { color: colors.muted }]}>Active</Text>
+                        <Text variant="sansBold" style={[styles.statValue, { color: colors.text }]}>{activeSubs.length}</Text>
+                        <Text variant="sans" style={[styles.statLabel, { color: colors.muted }]}>Active</Text>
                     </View>
                     <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
                     <View style={styles.stat}>
-                        <Text style={[styles.statValue, { color: colors.text }]}>{formatCurrency(monthly, currency)}</Text>
-                        <Text style={[styles.statLabel, { color: colors.muted }]}>Monthly</Text>
+                        <Text variant="sansBold" style={[styles.statValue, { color: colors.text }]}>{formatCurrency(monthly, currency)}</Text>
+                        <Text variant="sans" style={[styles.statLabel, { color: colors.muted }]}>Monthly</Text>
                     </View>
                     <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
                     <View style={styles.stat}>
-                        <Text style={[styles.statValue, { color: colors.text }]}>{formatCurrency(yearly, currency)}</Text>
-                        <Text style={[styles.statLabel, { color: colors.muted }]}>Yearly</Text>
+                        <Text variant="sansBold" style={[styles.statValue, { color: colors.text }]}>{formatCurrency(yearly, currency)}</Text>
+                        <Text variant="sans" style={[styles.statLabel, { color: colors.muted }]}>Yearly</Text>
                     </View>
                 </View>
 
@@ -400,21 +394,7 @@ export default function SettingsScreen() {
 
                 {/* ── Pro Features (gated) ─────────────────────────────────── */}
                 <SettingGroup label="Pro Features" colors={colors}>
-                    <SettingRow
-                        label="Gmail Sync"
-                        subLabel={isPro ? 'Auto-detect subscriptions' : 'Pro Feature'}
-                        icon={isPro ? <Mail size={18} color="#fff" /> : <Lock size={18} color="#fff" />}
-                        iconBg={isPro ? '#EA4335' : '#64748B'}
-                        colors={colors}
-                        onPress={() => {
-                            if (!isPro) {
-                                toast.info('Gmail Sync is a Pro feature');
-                                setPaywallVisible(true);
-                            } else {
-                                toast.info('Gmail Sync coming soon!');
-                            }
-                        }}
-                    />
+
                     {!isPro && (
                         <SettingRow
                             label="Subb Pro"
@@ -422,7 +402,7 @@ export default function SettingsScreen() {
                             icon={<Crown size={18} color="#fff" />}
                             iconBg={VIOLET}
                             colors={colors}
-                            onPress={() => setPaywallVisible(true)}
+                            onPress={() => router.push('/paywall')}
                         />
                     )}
                     <SettingRow
@@ -462,6 +442,25 @@ export default function SettingsScreen() {
                     />
                 </SettingGroup>
 
+                <SettingGroup label="Support" colors={colors}>
+                    <SettingRow
+                        label="Priority Support"
+                        subLabel="Get help directly from the founders"
+                        icon={<LifeBuoy size={18} color="#fff" />}
+                        iconBg="#10B981"
+                        colors={colors}
+                        last
+                        onPress={() => {
+                            if (isPro) {
+                                Linking.openURL('mailto:hello@subb.app');
+                            } else {
+                                toast.info('Priority Support is a Pro feature');
+                                router.push('/paywall');
+                            }
+                        }}
+                    />
+                </SettingGroup>
+
                 <SettingGroup label="Account" colors={colors}>
                     <SettingRow
                         label="Export Subscriptions"
@@ -485,48 +484,24 @@ export default function SettingsScreen() {
                         label="Delete Account"
                         icon={<Trash2 size={18} color="#fff" />}
                         iconBg={colors.danger}
-                        onPress={() => setDeleteVisible(true)}
+                        onPress={() => router.push('/delete-account')}
                         danger
                         colors={colors}
                         last
                     />
                 </SettingGroup>
 
-                <Text style={[styles.version, { color: colors.muted }]}>Subb v1.0.0 • Premium Tracker</Text>
+                <Text variant="sans" style={[styles.version, { color: colors.muted }]}>Subb v1.0.0 • Premium Tracker</Text>
             </ScrollView >
 
-            {/* Paywall */}
-            <Paywall
-                visible={paywallVisible}
-                onClose={() => setPaywallVisible(false)}
-                onSuccess={async () => {
-                    await onPurchaseSuccess();
-                    setPaywallVisible(false);
-                }}
-            />
-
-            <SecureDeleteModal
-                visible={deleteVisible}
-                onClose={() => setDeleteVisible(false)}
-                onConfirm={handleDeleteAccount}
-                colors={colors}
-            />
-
-            <AvatarPicker
-                visible={avatarPickerVisible}
-                currentAvatarId={avatarId}
-                onSelect={handleAvatarSelected}
-                onClose={() => setAvatarPickerVisible(false)}
-                colors={colors}
-            />
-        </SafeAreaView >
+        </Animated.View>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
     centered: { justifyContent: 'center', alignItems: 'center' },
-    scroll: { paddingHorizontal: 20, paddingTop: 30 },
+    scroll: { paddingHorizontal: 20, paddingTop: 30, paddingBottom: 140 },
 
     // Header
     header: {
@@ -541,7 +516,6 @@ const styles = StyleSheet.create({
     },
     displayName: {
         fontSize: 24,
-        fontWeight: '700',
         letterSpacing: -0.5,
     },
     nameButton: {
@@ -558,14 +532,12 @@ const styles = StyleSheet.create({
     },
     nameInput: {
         fontSize: 20,
-        fontWeight: '700',
         borderBottomWidth: 1,
         minWidth: 120,
         paddingVertical: 2,
     },
     nameAction: {
         color: VIOLET,
-        fontWeight: '700',
         fontSize: 15,
     },
     goalBadge: {
@@ -578,7 +550,6 @@ const styles = StyleSheet.create({
     },
     goalBadgeText: {
         fontSize: 11,
-        fontWeight: '700',
         textTransform: 'uppercase',
     },
     proBadge: {
@@ -594,7 +565,6 @@ const styles = StyleSheet.create({
     },
     proBadgeText: {
         fontSize: 12,
-        fontWeight: '700',
     },
 
     // Stats Bar
@@ -611,12 +581,10 @@ const styles = StyleSheet.create({
     },
     statValue: {
         fontSize: 17,
-        fontWeight: '800',
         letterSpacing: -0.5,
     },
     statLabel: {
         fontSize: 11,
-        fontWeight: '600',
         marginTop: 2,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -630,7 +598,6 @@ const styles = StyleSheet.create({
     // Custom components inside rows
     themeToggle: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(0,0,0,0.05)',
         borderRadius: 10,
         padding: 3,
         gap: 2,
@@ -652,16 +619,13 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: 'transparent',
-        backgroundColor: 'rgba(0,0,0,0.03)',
     },
     currencyText: {
         fontSize: 13,
-        fontWeight: '600',
     },
     stepper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.05)',
         borderRadius: 10,
         padding: 2,
     },
@@ -673,7 +637,6 @@ const styles = StyleSheet.create({
     },
     stepVal: {
         fontSize: 14,
-        fontWeight: '700',
         minWidth: 26,
         textAlign: 'center',
     },
@@ -681,6 +644,5 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontSize: 12,
         marginTop: 10,
-        fontWeight: '500',
     },
 });

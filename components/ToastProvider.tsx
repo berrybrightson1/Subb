@@ -1,4 +1,4 @@
-import { CircleCheck, CircleX, Info, UserCheck, X } from 'lucide-react-native';
+import { CheckCircle2, Info, ShieldAlert, UserCheck, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
@@ -32,8 +32,8 @@ const ICON_BG: Record<ToastType, string> = {
 };
 
 const ICON_MAP = {
-  success: CircleCheck,
-  error: CircleX,
+  success: CheckCircle2,
+  error: ShieldAlert,
   info: Info,
   profile: UserCheck,
 } as const;
@@ -72,7 +72,7 @@ function ToastPill({
       setTimeout(() => onDismiss(item.id), 250);
     }, 3500);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -214,7 +214,6 @@ const styles = StyleSheet.create({
   message: {
     flex: 1,
     fontSize: 14,
-    fontWeight: '600',
     lineHeight: 20,
   },
   closeBtn: {

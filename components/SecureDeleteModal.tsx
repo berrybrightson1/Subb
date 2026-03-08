@@ -99,7 +99,7 @@ export function SecureDeleteModal({ visible, onClose, onConfirm, colors }: Props
               <Text style={s.layerNum}>Step 1 of 2</Text>
               <Text style={s.layerLabel}>
                 Type{' '}
-                <Text style={s.phrase}>"{CONFIRM_PHRASE}"</Text>
+                <Text style={s.phrase}>&quot;{CONFIRM_PHRASE}&quot;</Text>
                 {' '}below
               </Text>
               <View style={[s.inputWrap, textOk && s.inputWrapOk]}>
@@ -127,7 +127,7 @@ export function SecureDeleteModal({ visible, onClose, onConfirm, colors }: Props
             <View style={s.layer}>
               <Text style={s.layerNum}>Step 2 of 2</Text>
               <Text style={s.layerLabel}>
-                Prove you're human: what is{' '}
+                Prove you&apos;re human: what is{' '}
                 <Text style={s.phrase}>{num1} + {num2}</Text>?
               </Text>
               <View style={[s.inputWrap, mathOk && s.inputWrapOk]}>
@@ -216,7 +216,6 @@ function makeStyles(colors: ThemeColors) {
       borderWidth: 1,
       borderColor: 'rgba(239,68,68,0.2)',
     },
-    title: { color: '#fff', fontSize: 22, fontWeight: '700', textAlign: 'center' },
     subtitle: { color: colors.muted, fontSize: 14, textAlign: 'center', marginTop: -12 },
 
     // Warning card
@@ -237,12 +236,10 @@ function makeStyles(colors: ThemeColors) {
     layerNum: {
       color: colors.danger,
       fontSize: 11,
-      fontWeight: '700',
       letterSpacing: 1,
       textTransform: 'uppercase',
     },
     layerLabel: { color: '#D1D5DB', fontSize: 14, lineHeight: 20 },
-    phrase: { color: '#F9FAFB', fontWeight: '700' },
 
     inputWrap: {
       backgroundColor: 'rgba(255,255,255,0.05)',
@@ -267,7 +264,6 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    checkMark: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
     // Delete button
     deleteBtn: {
@@ -290,6 +286,5 @@ function makeStyles(colors: ThemeColors) {
       borderWidth: 1,
       borderColor: 'rgba(239,68,68,0.25)',
     },
-    deleteBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   });
 }

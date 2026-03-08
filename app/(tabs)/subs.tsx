@@ -1,13 +1,18 @@
-import { useRouter } from 'expo-router';
-import { AlertCircle, CheckCircle2, Clock, CreditCard, Ghost, Plus, RotateCcw, Search, Smartphone, Tv, X } from 'lucide-react-native';
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { GhostInsightModal } from '../../components/GhostInsightModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { AlertCircle, CheckCircle2, Clock, CreditCard, Ghost, Lock, Plus, RotateCcw, Search, Smartphone, Target, Tv, X } from 'lucide-react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DonutChart } from '../../components/DonutChart';
 import { SubscriptionActionSheet } from '../../components/SubscriptionActionSheet';
+import { Text } from '../../components/Text';
+import { IncognitoText } from '../../components/ui/IncognitoText';
 import { useAppSettings } from '../../contexts/AppContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useIncognito } from '../../hooks/useIncognito';
+import { useIsPro } from '../../hooks/useIsPro';
 import { Subscription, useSubscriptions } from '../../hooks/useSubscriptions';
 import { ThemeColors } from '../../lib/theme';
 import { calculateDaysRemaining, flagGhostSub, formatCurrency, hoursUntil } from '../../lib/utils';
@@ -17,12 +22,21 @@ export default function SubscriptionsScreen() {
     const { subscriptions, loading: subsLoading, renewSubscription, cancelSubscription, restoreSubscription } = useSubscriptions(user?.uid);
     const { colors, currency } = useAppSettings();
     const { incognito } = useIncognito();
+    const insets = useSafeAreaInsets();
     const router = useRouter();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [searchVisible, setSearchVisible] = useState(false);
     const [actionSub, setActionSub] = useState<Subscription | null>(null);
-    const [ghostSub, setGhostSub] = useState<Subscription | null>(null);
+
+    const { isPro } = useIsPro();
+    const [budget, setBudget] = useState(0);
+
+    useFocusEffect(useCallback(() => {
+        AsyncStorage.getItem('monthlyBudget').then(val => {
+            if (val) setBudget(Number(val));
+        });
+    }, []));
 
     const s = useMemo(() => makeStyles(colors), [colors]);
 
@@ -59,28 +73,40 @@ export default function SubscriptionsScreen() {
         return acc + (sub.billingCycle === 'Mo' ? sub.cost : sub.cost / 12);
     }, 0);
 
+    // Screen fade-in on tab focus
+    const screenOpacity = useSharedValue(0);
+    const screenY       = useSharedValue(10);
+    useFocusEffect(
+        useCallback(() => {
+            screenOpacity.value = withTiming(1, { duration: 260 });
+            screenY.value       = withTiming(0, { duration: 260 });
+            return () => { screenOpacity.value = 0; screenY.value = 10; };
+        }, [])
+    );
+    const screenStyle = useAnimatedStyle(() => ({
+        opacity:   screenOpacity.value,
+        transform: [{ translateY: screenY.value }],
+    }));
+
     if (authLoading || subsLoading || !user) {
         return (
-            <SafeAreaView style={s.container}>
+            <View style={s.container}>
                 <ActivityIndicator size="large" color={colors.accent} />
-            </SafeAreaView>
+            </View>
         );
     }
 
     return (
-        <SafeAreaView style={s.container}>
+        <Animated.View style={[s.container, screenStyle]}>
             {/* Header */}
-            <View style={s.header}>
-                <Text style={s.headerTitle}>Subscriptions</Text>
+            <View style={[s.header, { paddingTop: insets.top }]}>
+                <Text variant="display" style={s.headerTitle}>Subscriptions</Text>
                 <View style={s.headerRight}>
                     <TouchableOpacity
                         style={[s.iconBtn, searchVisible && s.iconBtnActive]}
                         onPress={() => { setSearchVisible(v => !v); setSearchQuery(''); }}
                     >
                         <Search color={searchVisible ? colors.accent : colors.text} size={18} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={s.addBtn} onPress={() => router.push('/add')}>
-                        <Plus color="#fff" size={20} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -109,16 +135,71 @@ export default function SubscriptionsScreen() {
             <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
 
                 {/* Summary */}
-                <Text style={s.sectionEyebrow}>MONTHLY TOTAL</Text>
-                <Text style={s.sectionBig}>{formatCurrency(monthlyTotal, currency)}</Text>
+                <Text variant="brand" style={s.sectionEyebrow}>MONTHLY TOTAL</Text>
+                <Text variant="sansBold" style={s.sectionBig}>{formatCurrency(monthlyTotal, currency)}</Text>
+
+                {/* ── ANALYTICS section ── */}
+                <Text variant="display" style={s.sectionLabel}>Insights</Text>
+
+                {isPro ? (
+                    <View style={s.analyticsContainer}>
+                        {budget > 0 ? (
+                            <TouchableOpacity style={s.budgetCard} onPress={() => router.push('/budget')} activeOpacity={0.7}>
+                                <View style={s.budgetHeaderRow}>
+                                    <View style={s.budgetIconBox}>
+                                        <Target color={colors.accent} size={18} strokeWidth={2} />
+                                    </View>
+                                    <View style={s.budgetInfo}>
+                                        <Text variant="brand" style={s.budgetTitle}>Monthly Budget</Text>
+                                        <Text variant="sansBold" style={s.budgetAmt}>{formatCurrency(budget, currency)}</Text>
+                                    </View>
+                                    <View style={s.budgetRight}>
+                                        <Text variant="sansBold" style={[s.budgetRemaining, monthlyTotal > budget && { color: colors.danger || '#EF4444' }]}>
+                                            {monthlyTotal > budget ? 'Over budget' : `${formatCurrency(budget - monthlyTotal, currency)} left`}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <View style={s.budgetProgressBg}>
+                                    <View style={[s.budgetProgressFill, { width: `${Math.max(0, Math.min(100, (monthlyTotal / budget) * 100))}%`, backgroundColor: monthlyTotal > budget ? colors.danger || '#EF4444' : colors.accent }]} />
+                                </View>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity style={s.budgetSetupCard} onPress={() => router.push('/budget')} activeOpacity={0.7}>
+                                <View style={s.budgetIconBox}>
+                                    <Target color={colors.accent} size={18} strokeWidth={2} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text variant="brand" style={s.budgetTitle}>Set a Budget</Text>
+                                    <Text variant="sans" style={s.budgetSub}>Track your spending limits easily.</Text>
+                                </View>
+                                <Plus color={colors.muted} size={20} />
+                            </TouchableOpacity>
+                        )}
+
+                        <View style={s.donutWrap}>
+                            <DonutChart subscriptions={current} currency={currency} compact />
+                        </View>
+                    </View>
+                ) : (
+                    <TouchableOpacity style={s.lockedCard} onPress={() => router.push('/paywall')} activeOpacity={0.8}>
+                        <View style={s.lockedIconBox}>
+                            <Lock color="#fff" size={24} strokeWidth={2} />
+                        </View>
+                        <Text variant="display" style={s.lockedTitle}>Unlock Insights</Text>
+                        <Text variant="sans" style={s.lockedSub}>Get advanced analytics, category breakdowns, and budgeting tools with Subb Pro.</Text>
+                        <View style={s.lockedBtn}>
+                            <Text variant="brand" style={s.lockedBtnText}>Upgrade to Pro</Text>
+                        </View>
+                    </TouchableOpacity>
+                )}
 
                 {/* ── CURRENT section ── */}
-                <Text style={s.sectionLabel}>Current</Text>
+                <Text variant="display" style={[s.sectionLabel, { marginTop: 24 }]}>Current</Text>
 
                 {current.length === 0 ? (
                     <View style={s.emptyBox}>
                         <CheckCircle2 color={colors.muted} size={22} strokeWidth={1.5} />
-                        <Text style={s.emptyText}>No active subscriptions</Text>
+                        <Text variant="sans" style={s.emptyText}>No active subscriptions</Text>
                     </View>
                 ) : (
                     <View style={s.list}>
@@ -152,26 +233,27 @@ export default function SubscriptionsScreen() {
                                         </View>
                                         <View style={s.cardInfo}>
                                             <View style={s.cardNameRow}>
-                                                <Text
+                                                <IncognitoText
+                                                    variant="brand"
                                                     style={[
                                                         s.cardName,
-                                                        (isPending || isUrgent) && { color: isPending ? '#F59E0B' : '#EF4444' },
-                                                        incognito && s.incognitoText
+                                                        (isPending || isUrgent) && { color: isPending ? '#F59E0B' : '#EF4444' }
                                                     ]}
+                                                    incognito={incognito}
                                                     numberOfLines={1}
                                                 >
-                                                    {incognito ? '••••••••' : sub.name}
-                                                </Text>
+                                                    {sub.name}
+                                                </IncognitoText>
                                                 {isGhost && (
                                                     <TouchableOpacity
-                                                        onPress={() => setGhostSub(sub)}
+                                                        onPress={() => router.push(`/ghost-insight?subId=${sub.id}`)}
                                                         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                                                     >
                                                         <Ghost color="#64748B" size={13} strokeWidth={2} />
                                                     </TouchableOpacity>
                                                 )}
                                             </View>
-                                            <Text style={s.cardBilling}>
+                                            <Text variant="sans" style={s.cardBilling}>
                                                 {isPending
                                                     ? (sub.isTrial ? 'Trial ended — action needed' : 'Overdue — action needed')
                                                     : daysLeft < 0 ? 'Overdue'
@@ -181,28 +263,29 @@ export default function SubscriptionsScreen() {
                                             </Text>
                                         </View>
                                         <View style={s.cardRight}>
-                                            <Text
+                                            <IncognitoText
+                                                variant="sansBold"
                                                 style={[
                                                     s.cardCost,
-                                                    (isPending || isUrgent) && { color: isPending ? '#F59E0B' : '#EF4444' },
-                                                    incognito && s.incognitoText
+                                                    (isPending || isUrgent) && { color: isPending ? '#F59E0B' : '#EF4444' }
                                                 ]}
+                                                incognito={incognito}
                                             >
-                                                {incognito ? '••••' : formatCurrency(sub.cost, currency)}
-                                            </Text>
-                                            <Text style={s.cardFreq}>/ {sub.billingCycle}</Text>
+                                                {formatCurrency(sub.cost, currency)}
+                                            </IncognitoText>
+                                            <Text variant="sans" style={s.cardFreq}>/ {sub.billingCycle}</Text>
                                             {/* Trial countdown or label */}
                                             {showTrialBadge && !isPending && (
                                                 <View style={s.trialBadge}>
                                                     <Clock color="#F59E0B" size={9} strokeWidth={2.5} />
-                                                    <Text style={s.trialBadgeText}>
+                                                    <Text variant="brand" style={s.trialBadgeText}>
                                                         {trialHoursLeft > 0 ? `${trialHoursLeft}h` : 'Today'}
                                                     </Text>
                                                 </View>
                                             )}
                                             {sub.isTrial && !showTrialBadge && !isPending && (
                                                 <View style={s.trialLabel}>
-                                                    <Text style={s.trialLabelText}>TRIAL</Text>
+                                                    <Text variant="brand" style={s.trialLabelText}>TRIAL</Text>
                                                 </View>
                                             )}
                                         </View>
@@ -211,17 +294,11 @@ export default function SubscriptionsScreen() {
                                     {isPending ? (
                                         <View style={s.actionPrompt}>
                                             <AlertCircle color="#F59E0B" size={14} strokeWidth={2} />
-                                            <Text style={s.actionPromptText}>Tap to renew or cancel</Text>
+                                            <Text variant="sans" style={s.actionPromptText}>Tap to renew or cancel</Text>
                                         </View>
                                     ) : (
-                                        <View style={s.progressContainer}>
-                                            <View style={s.progressHeader}>
-                                                <Text style={s.progressLabel}>Cycle Progress</Text>
-                                                <Text style={[s.progressValue, { color: accentColor }]}>{Math.round(progress)}%</Text>
-                                            </View>
-                                            <View style={s.progressBarBg}>
-                                                <View style={[s.progressBarFill, { width: `${progress}%`, backgroundColor: accentColor }]} />
-                                            </View>
+                                        <View style={[s.progressBarBg, { marginTop: 4 }]}>
+                                            <View style={[s.progressBarFill, { width: `${progress}%`, backgroundColor: accentColor }]} />
                                         </View>
                                     )}
                                 </TouchableOpacity>
@@ -233,7 +310,7 @@ export default function SubscriptionsScreen() {
                 {/* ── HISTORY section ── */}
                 {history.length > 0 && (
                     <>
-                        <Text style={[s.sectionLabel, { marginTop: 32 }]}>History</Text>
+                        <Text variant="display" style={[s.sectionLabel, { marginTop: 32 }]}>History</Text>
                         <View style={s.historyList}>
                             {history.map(sub => (
                                 <View key={sub.id} style={s.historyRow}>
@@ -241,8 +318,10 @@ export default function SubscriptionsScreen() {
                                         {getServiceIcon(sub.name, colors.muted)}
                                     </View>
                                     <View style={s.historyInfo}>
-                                        <Text style={s.historyName}>{sub.name}</Text>
-                                        <Text style={s.historySub}>
+                                        <IncognitoText variant="brand" style={s.historyName} incognito={incognito} numberOfLines={1}>
+                                            {sub.name}
+                                        </IncognitoText>
+                                        <Text variant="sans" style={s.historySub}>
                                             {sub.cancelledAt?.toDate
                                                 ? `Cancelled ${sub.cancelledAt.toDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
                                                 : 'Cancelled'
@@ -250,14 +329,16 @@ export default function SubscriptionsScreen() {
                                         </Text>
                                     </View>
                                     <View style={s.historyRight}>
-                                        <Text style={s.historyCost}>{formatCurrency(sub.cost, currency)}</Text>
+                                        <IncognitoText variant="sansBold" style={s.historyCost} incognito={incognito}>
+                                            {formatCurrency(sub.cost, currency)}
+                                        </IncognitoText>
                                         <TouchableOpacity
                                             style={s.restoreBtn}
                                             onPress={() => restoreSubscription(user.uid, sub.id)}
                                             activeOpacity={0.7}
                                         >
                                             <RotateCcw color={colors.accent} size={13} strokeWidth={2} />
-                                            <Text style={[s.restoreText, { color: colors.accent }]}>Restore</Text>
+                                            <Text variant="brand" style={[s.restoreText, { color: colors.accent }]}>Restore</Text>
                                         </TouchableOpacity>
                                     </View>
                                 </View>
@@ -284,18 +365,7 @@ export default function SubscriptionsScreen() {
                 onClose={() => setActionSub(null)}
             />
 
-            {/* Ghost Insight Modal */}
-            <GhostInsightModal
-                visible={ghostSub !== null}
-                sub={ghostSub}
-                currency={currency}
-                onCancel={() => {
-                    if (ghostSub) cancelSubscription(user.uid, ghostSub.id);
-                    setGhostSub(null);
-                }}
-                onKeep={() => setGhostSub(null)}
-            />
-        </SafeAreaView>
+        </Animated.View>
     );
 }
 
@@ -306,7 +376,7 @@ function makeStyles(colors: ThemeColors) {
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
             paddingHorizontal: 20, paddingTop: 16, marginBottom: 12,
         },
-        headerTitle: { color: colors.text, fontSize: 22, fontWeight: '800' },
+        headerTitle: { fontSize: 16, color: colors.text, letterSpacing: -0.3 },
         headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
         iconBtn: {
             width: 38, height: 38, borderRadius: 19,
@@ -323,26 +393,26 @@ function makeStyles(colors: ThemeColors) {
             borderRadius: 12, paddingHorizontal: 14, height: 42, gap: 10,
         },
         searchInput: { flex: 1, color: colors.text, fontSize: 14, height: '100%' },
-        scrollContent: { paddingHorizontal: 20, paddingBottom: 48 },
-        sectionEyebrow: { color: colors.muted, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 4 },
-        sectionBig: { color: colors.text, fontSize: 34, fontWeight: '800', marginBottom: 28, letterSpacing: -0.5 },
-        sectionLabel: { color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 14 },
+        scrollContent: { paddingHorizontal: 20, paddingBottom: 140 },
+        sectionEyebrow: { fontSize: 11, color: colors.muted, letterSpacing: 1.5, marginTop: 16, marginBottom: 4 },
+        sectionBig: { fontSize: 32, color: colors.text, letterSpacing: -1, marginBottom: 24 },
+        sectionLabel: { fontSize: 15, color: colors.text, letterSpacing: -0.2, marginBottom: 12 },
         list: { gap: 12 },
         card: { borderRadius: 16, padding: 18 },
         cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
         cardIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
         cardInfo: { flex: 1 },
-        cardName: { color: colors.text, fontSize: 15, fontWeight: '600', marginBottom: 3 },
+        cardName: { fontSize: 15, color: colors.text, letterSpacing: -0.2, flex: 1 },
         cardBilling: { color: colors.muted, fontSize: 12 },
         cardRight: { alignItems: 'flex-end' },
-        cardCost: { color: colors.text, fontSize: 16, fontWeight: '700', marginBottom: 3 },
+        cardCost: { fontSize: 15, color: colors.text },
         cardFreq: { color: colors.muted, fontSize: 12 },
         actionPrompt: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-        actionPromptText: { color: '#F59E0B', fontSize: 12, fontWeight: '600' },
+        actionPromptText: { fontSize: 13, color: '#F59E0B' },
         progressContainer: {},
         progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
         progressLabel: { color: colors.muted, fontSize: 11 },
-        progressValue: { fontSize: 11, fontWeight: '700' },
+        progressValue: { fontSize: 11, color: colors.text },
         progressBarBg: { height: 5, backgroundColor: colors.border, borderRadius: 3, overflow: 'hidden' },
         progressBarFill: { height: '100%', borderRadius: 3 },
         // History
@@ -353,15 +423,15 @@ function makeStyles(colors: ThemeColors) {
         },
         historyIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12, opacity: 0.5 },
         historyInfo: { flex: 1 },
-        historyName: { color: colors.muted, fontSize: 14, fontWeight: '600', marginBottom: 2 },
-        historySub: { color: colors.border, fontSize: 12 },
+        historyName: { fontSize: 14, color: colors.muted, letterSpacing: -0.2 },
+        historySub: { color: colors.muted, fontSize: 12, opacity: 0.6 },
+        historyCost: { fontSize: 14, color: colors.muted },
         historyRight: { alignItems: 'flex-end', gap: 6 },
-        historyCost: { color: colors.muted, fontSize: 14, fontWeight: '600' },
         restoreBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-        restoreText: { fontSize: 12, fontWeight: '600' },
+        restoreText: { fontSize: 12, color: colors.accent },
         emptyBox: { alignItems: 'center', paddingVertical: 32, gap: 10 },
         emptyText: { color: colors.muted, fontSize: 14 },
-        // Ghost + Trial + Incognito additions
+        // Ghost + Trial
         cardNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
         incognitoText: { opacity: 0.12, letterSpacing: 2 },
         trialBadge: {
@@ -369,11 +439,46 @@ function makeStyles(colors: ThemeColors) {
             flexDirection: 'row', alignItems: 'center',
             gap: 3, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6, marginTop: 3,
         },
-        trialBadgeText: { color: '#F59E0B', fontSize: 9, fontWeight: '800' },
+        trialBadgeText: { fontSize: 10, color: '#F59E0B' },
         trialLabel: {
             backgroundColor: 'rgba(239,68,68,0.1)',
             paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6, marginTop: 3,
         },
-        trialLabelText: { color: '#EF4444', fontSize: 9, fontWeight: '800' },
+        trialLabelText: { fontSize: 10, color: colors.danger },
+        // Analytics
+        analyticsContainer: { gap: 16, marginBottom: 8 },
+        donutWrap: { alignItems: 'center', marginVertical: 10 },
+        budgetCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border },
+        budgetSetupCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 12 },
+        budgetHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+        budgetIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.accentMuted, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+        budgetInfo: { flex: 1 },
+        budgetTitle: { fontSize: 14, color: colors.text, letterSpacing: -0.2, marginBottom: 2 },
+        budgetAmt: { color: colors.muted, fontSize: 13 },
+        budgetSub: { color: colors.muted, fontSize: 13 },
+        budgetRemaining: { fontSize: 13, color: colors.success },
+        budgetRight: { alignItems: 'flex-end' },
+        budgetProgressBg: { height: 6, backgroundColor: colors.border, borderRadius: 3, overflow: 'hidden' },
+        budgetProgressFill: { height: '100%', borderRadius: 3 },
+        // Locked
+        lockedCard: { backgroundColor: 'rgba(245,158,11,0.06)', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: 'rgba(245,158,11,0.2)', alignItems: 'center' },
+        lockedIconBox: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#F59E0B', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+        lockedTitle: { fontSize: 18, color: colors.text, letterSpacing: -0.3, marginBottom: 10 },
+        lockedSub: { color: colors.muted, fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+        lockedBtn: { backgroundColor: colors.card, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
+        lockedBtnText: { fontSize: 14, color: colors.text },
+        // Modal
+        modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 },
+        modalContent: { backgroundColor: colors.modal, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: colors.border },
+        modalTitle: { fontSize: 18, color: colors.text, letterSpacing: -0.3, textAlign: 'center', marginBottom: 8 },
+        modalSub: { color: colors.muted, fontSize: 14, textAlign: 'center', marginBottom: 24 },
+        modalInputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bg, borderRadius: 16, paddingHorizontal: 16, height: 60, marginBottom: 24, borderWidth: 1, borderColor: colors.border },
+        modalCurrency: { fontSize: 20, color: colors.muted, marginRight: 8 },
+        modalInput: { flex: 1, fontSize: 24, color: colors.text },
+        modalActions: { flexDirection: 'row', gap: 12 },
+        modalBtnCancel: { flex: 1, height: 50, borderRadius: 14, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+        modalBtnCancelText: { fontSize: 15, color: colors.muted },
+        modalBtnSave: { flex: 1, height: 50, borderRadius: 14, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+        modalBtnSaveText: { fontSize: 15, color: '#FFFFFF' },
     });
 }

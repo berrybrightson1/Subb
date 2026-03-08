@@ -95,7 +95,6 @@ const s = StyleSheet.create({
     },
     label: {
         fontSize: 16,
-        fontWeight: '500',
     },
     subLabel: {
         fontSize: 12,

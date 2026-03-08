@@ -1,0 +1,78 @@
+﻿
+> subb@1.0.0 lint
+> expo lint
+
+env: load .env
+env: export EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID EXPO_PUBLIC_REVENUECAT_IOS_KEY
+
+G:\wORKS 2\ACTIVE\Apps\subb\app\(tabs)\index.tsx
+   66:6  warning  React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  552:7  warning  'styles' is assigned a value but never used                                                                @typescript-eslint/no-unused-vars
+
+G:\wORKS 2\ACTIVE\Apps\subb\app\(tabs)\profile.tsx
+   85:20  warning  'onPurchaseSuccess' is assigned a value but never used                                                     @typescript-eslint/no-unused-vars
+   86:13  warning  'incognito' is assigned a value but never used                                                             @typescript-eslint/no-unused-vars
+   86:24  warning  'enableIncognito' is assigned a value but never used                                                       @typescript-eslint/no-unused-vars
+   86:41  warning  'disableIncognito' is assigned a value but never used                                                      @typescript-eslint/no-unused-vars
+  109:8   warning  React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  116:8   warning  React Hook useEffect has a missing dependency: 'user'. Either include it or remove the dependency array    react-hooks/exhaustive-deps
+
+G:\wORKS 2\ACTIVE\Apps\subb\app\(tabs)\subs.tsx
+  32:8  warning  React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+G:\wORKS 2\ACTIVE\Apps\subb\app\+not-found.tsx
+  9:61  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+G:\wORKS 2\ACTIVE\Apps\subb\app\_layout.tsx
+    7:8   warning  'G:\wORKS 2\ACTIVE\Apps\subb\node_modules\react-native-gesture-handler\lib\module\index.js' imported multiple times       import/no-duplicates
+    8:40  warning  'G:\wORKS 2\ACTIVE\Apps\subb\node_modules\react-native-gesture-handler\lib\module\index.js' imported multiple times       import/no-duplicates
+   67:6   warning  React Hook useEffect has missing dependencies: 'opacity' and 'scale'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   96:6   warning  React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array                 react-hooks/exhaustive-deps
+  117:6   warning  React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array                 react-hooks/exhaustive-deps
+
+G:\wORKS 2\ACTIVE\Apps\subb\app\add.tsx
+  184:20  warning  'onPurchaseSuccess' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+G:\wORKS 2\ACTIVE\Apps\subb\app\auth.tsx
+   38:8   warning  React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  105:18  warning  'error' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+
+G:\wORKS 2\ACTIVE\Apps\subb\app\onboarding.tsx
+   45:17  warning  'SH' is assigned a value but never used                                                                                             @typescript-eslint/no-unused-vars
+   93:8   warning  React Hook useEffect has missing dependencies: 'opacity' and 'scale'. Either include them or remove the dependency array            react-hooks/exhaustive-deps
+  296:8   warning  React Hook useEffect has missing dependencies: 'contentOpacity' and 'contentY'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  392:50  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                     react/no-unescaped-entities
+  394:41  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                     react/no-unescaped-entities
+  608:8   warning  React Hook useEffect has missing dependencies: 'contentOpacity' and 'contentY'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  634:49  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                     react/no-unescaped-entities
+  636:24  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                     react/no-unescaped-entities
+  716:8   warning  React Hook useCallback has missing dependencies: 'opacity' and 'translateY'. Either include them or remove the dependency array     react-hooks/exhaustive-deps
+
+G:\wORKS 2\ACTIVE\Apps\subb\app\paywall.tsx
+  42:13  warning  'colors' is assigned a value but never used                                                                                                                                          @typescript-eslint/no-unused-vars
+  67:11  warning  The 'onClose' function makes the dependencies of useCallback Hook (at line 103) change on every render. To fix this, wrap the definition of 'onClose' in its own useCallback() Hook  react-hooks/exhaustive-deps
+
+G:\wORKS 2\ACTIVE\Apps\subb\app\sub\[id].tsx
+   72:6   warning  React Hook useEffect has a missing dependency: 'anim'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  276:6   warning  React Hook useEffect has a missing dependency: 'sub'. Either include it or remove the dependency array   react-hooks/exhaustive-deps
+  639:10  warning  'DetailRow' is defined but never used                                                                    @typescript-eslint/no-unused-vars
+
+G:\wORKS 2\ACTIVE\Apps\subb\components\GhostInsightModal.tsx
+   43:8   warning  React Hook useEffect has missing dependencies: 'opacity' and 'translateY'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  109:34  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                react/no-unescaped-entities
+  110:77  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                react/no-unescaped-entities
+
+G:\wORKS 2\ACTIVE\Apps\subb\components\SecureDeleteModal.tsx
+  102:40  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  102:57  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  130:26  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+G:\wORKS 2\ACTIVE\Apps\subb\components\SubscriptionActionSheet.tsx
+  49:8  warning  React Hook useEffect has missing dependencies: 'backdropOpacity' and 'translateY'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+G:\wORKS 2\ACTIVE\Apps\subb\components\ToastProvider.tsx
+  65:6  warning  React Hook useEffect has missing dependencies: 'opacity', 'scale', and 'translateY'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+Γ£û 40 problems (10 errors, 30 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

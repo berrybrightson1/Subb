@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;600&display=swap');
+@import "tailwindcss";
+
+/* ─── Catlog Design Tokens ───────────────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --color-bg-main:    #ffffff;
+  --color-bg-surface: #f3f4f7;
+
+  /* Brand */
+  --color-brand-violet: #7d3cff;
+  --color-brand-orange: #f58a1f;
+  --color-brand-red:    #ff0028;
+
+  /* Text */
+  --color-text-primary: #000000;
+  --color-text-muted:   #6b7280;
+
+  /* Accents */
+  --color-mint:    #b2f2bb;
+  --color-lavender:#ede9fe;
+  --color-surface-soft: #f3f4f7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-main:    #121212;
+    --color-bg-surface: #1e1e1e;
+    --color-brand-violet: #a5b2eb;
+    --color-brand-orange: #da935d;
+    --color-brand-red:    #e57373;
+    --color-text-primary: #e0e0e0;
+    --color-text-muted:   #a1a1aa;
+    --color-mint:    #1a3d1f;
+    --color-lavender:#2d2145;
+    --color-surface-soft: #1e1e1e;
+  }
+}
+
+/* ─── Tailwind v4 Theme Extension ────────────────────────────────────────────── */
+@theme inline {
+  --color-bg-main:      var(--color-bg-main);
+  --color-bg-surface:   var(--color-bg-surface);
+  --color-brand-violet: var(--color-brand-violet);
+  --color-brand-orange: var(--color-brand-orange);
+  --color-brand-red:    var(--color-brand-red);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-muted:   var(--color-text-muted);
+  --color-mint:         var(--color-mint);
+  --color-lavender:     var(--color-lavender);
+  --color-surface-soft: var(--color-surface-soft);
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+/* ─── Base ────────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg-main);
+  color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
