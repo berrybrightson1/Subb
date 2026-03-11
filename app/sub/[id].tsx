@@ -345,7 +345,7 @@ export default function SubDetailScreen() {
   if (!sub) {
     return (
       <View style={s.container}>
-        <View style={[s.header, { paddingTop: insets.top }]}>
+        <View style={[s.header, { paddingTop: Math.max(insets.top, 24) }]}>
           <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
             <ChevronLeft color={colors.text} size={22} />
             <Text variant="brand" style={s.backLabel}>Back</Text>
@@ -371,7 +371,7 @@ export default function SubDetailScreen() {
           style={{ flex: 1 }}
         >
           {/* Header */}
-          <View style={[s.header, { paddingTop: insets.top }]}>
+          <View style={[s.header, { paddingTop: Math.max(insets.top, 24) }]}>
             <TouchableOpacity onPress={handleCancel}>
               <Text variant="brand" style={[s.headerAction, { color: colors.muted }]}>Cancel</Text>
             </TouchableOpacity>
@@ -488,7 +488,7 @@ export default function SubDetailScreen() {
   return (
     <View style={s.container}>
       {/* Header */}
-      <View style={[s.header, { paddingTop: insets.top }]}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top, 24) }]}>
         <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
           <ChevronLeft color={colors.text} size={22} />
           <Text style={s.backLabel}>Back</Text>
@@ -554,17 +554,10 @@ export default function SubDetailScreen() {
           <SettingRow
             label="Alert Offset"
             icon={<Clock size={18} color="#fff" />}
-            iconBg={isPro ? "#F59E0B" : "#64748B"}
+            iconBg="#F59E0B"
             subLabel={`Notify ${sub.remindMeDaysBefore} days before`}
-            rightContent={!isPro ? <Lock size={14} color={colors.muted} /> : undefined}
             colors={colors}
             showArrow={false}
-            onPress={() => {
-              if (!isPro) {
-                toast.info('Custom alerts are a Pro feature');
-                router.push('/paywall');
-              }
-            }}
           />
           <SettingRow
             label="Billing Cycle"
@@ -617,8 +610,10 @@ export default function SubDetailScreen() {
             <Text variant="sans" style={[s.confirmSub, { color: colors.muted }]}>Moves to History. You can restore it later.</Text>
             <View style={s.confirmActions}>
               <TouchableOpacity style={[s.confBtn, { backgroundColor: colors.cardAlt }]} onPress={() => setConfirmCancel(false)}>
+                <Text variant="brand" style={{ color: colors.text }}>Keep it</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.confBtn, { backgroundColor: '#F59E0B' }]} onPress={handleCancelSub}>
+                <Text variant="brand" style={{ color: '#fff' }}>Cancel Now</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -630,8 +625,10 @@ export default function SubDetailScreen() {
             <Text variant="sans" style={[s.confirmSub, { color: colors.muted }]}>This action cannot be undone.</Text>
             <View style={s.confirmActions}>
               <TouchableOpacity style={[s.confBtn, { backgroundColor: colors.cardAlt }]} onPress={() => setConfirmDelete(false)}>
+                <Text variant="brand" style={{ color: colors.text }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.confBtn, { backgroundColor: colors.danger }]} onPress={handleDelete}>
+                <Text variant="brand" style={{ color: '#fff' }}>Delete</Text>
               </TouchableOpacity>
             </View>
           </View>

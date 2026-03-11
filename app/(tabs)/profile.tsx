@@ -207,7 +207,7 @@ export default function SettingsScreen() {
     return (
         <Animated.View style={[styles.container, { backgroundColor: colors.bg }, screenStyle]}>
             <ScrollView
-                contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 40 }]}
+                contentContainerStyle={[styles.scroll, { paddingTop: Math.max(insets.top, 24) + 20, paddingBottom: Math.max(insets.bottom, 24) + 120 }]}
                 showsVerticalScrollIndicator={false}
             >
                 {/* ── Profile Header ────────────────────────────────────────── */}
@@ -241,21 +241,10 @@ export default function SettingsScreen() {
                             </TouchableOpacity>
                         )}
                         {/* ── Pro Badge ────────────────────────────────────────────── */}
-                        {isPro ? (
-                            <View style={[styles.proBadge, { backgroundColor: 'rgba(139,92,246,0.12)', borderColor: 'rgba(139,92,246,0.3)' }]}>
-                                <Crown color={VIOLET} size={13} strokeWidth={2.5} />
-                                <Text variant="brand" style={[styles.proBadgeText, { color: VIOLET }]}>Subb Pro</Text>
-                            </View>
-                        ) : (
-                            <TouchableOpacity
-                                style={[styles.proBadge, { backgroundColor: 'rgba(139,92,246,0.06)', borderColor: 'rgba(139,92,246,0.15)' }]}
-                                onPress={() => router.push('/paywall')}
-                                activeOpacity={0.8}
-                            >
-                                <Crown color="rgba(139,92,246,0.5)" size={13} strokeWidth={2.5} />
-                                <Text variant="brand" style={[styles.proBadgeText, { color: 'rgba(139,92,246,0.5)' }]}>Upgrade to Pro</Text>
-                            </TouchableOpacity>
-                        )}
+                        <View style={[styles.proBadge, { backgroundColor: 'rgba(139,92,246,0.12)', borderColor: 'rgba(139,92,246,0.3)' }]}>
+                            <Crown color={VIOLET} size={13} strokeWidth={2.5} />
+                            <Text variant="brand" style={[styles.proBadgeText, { color: VIOLET }]}>Subb Pro</Text>
+                        </View>
                         <Text variant="sans" style={[styles.email, { color: colors.muted }]}>{user.email}</Text>
                         {gm && (
                             <View style={[styles.goalBadge, { backgroundColor: gm.bg, borderColor: gm.border }]}>
@@ -392,19 +381,7 @@ export default function SettingsScreen() {
                     )}
                 </SettingGroup>
 
-                {/* ── Pro Features (gated) ─────────────────────────────────── */}
                 <SettingGroup label="Pro Features" colors={colors}>
-
-                    {!isPro && (
-                        <SettingRow
-                            label="Subb Pro"
-                            subLabel="Unlock all features"
-                            icon={<Crown size={18} color="#fff" />}
-                            iconBg={VIOLET}
-                            colors={colors}
-                            onPress={() => router.push('/paywall')}
-                        />
-                    )}
                     <SettingRow
                         label="Restore Purchases"
                         subLabel="Recover a previous Pro purchase"
@@ -413,8 +390,7 @@ export default function SettingsScreen() {
                         colors={colors}
                         last
                         onPress={async () => {
-                            await restorePurchases();
-                            toast.success(isPro ? 'Pro restored' : 'No active purchases found');
+                            toast.success('You already have full access — app is free!');
                         }}
                     />
                 </SettingGroup>
@@ -450,14 +426,7 @@ export default function SettingsScreen() {
                         iconBg="#10B981"
                         colors={colors}
                         last
-                        onPress={() => {
-                            if (isPro) {
-                                Linking.openURL('mailto:hello@subb.app');
-                            } else {
-                                toast.info('Priority Support is a Pro feature');
-                                router.push('/paywall');
-                            }
-                        }}
+                        onPress={() => Linking.openURL('mailto:hello@subb.app')}
                     />
                 </SettingGroup>
 

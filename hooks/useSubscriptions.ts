@@ -22,6 +22,7 @@ export interface Subscription {
     cancelUrl?: string;
     lastActivityDate?: Timestamp | null;
     isGhost?: boolean;
+    isPaid?: boolean;
 }
 
 export function useSubscriptions(userId?: string) {
@@ -64,6 +65,7 @@ export function useSubscriptions(userId?: string) {
         const ref = await addDoc(collection(db, `users/${userId}/subscriptions`), {
             ...sub,
             status: 'active' as SubStatus,
+            isPaid: false,
         });
         // Auto-schedule renewal alert for the new sub
         const fullSub: Subscription = { id: ref.id, ...sub, status: 'active' };
@@ -100,11 +102,19 @@ export function useSubscriptions(userId?: string) {
             nextBillingDate: Timestamp.fromDate(next),
             isTrial: false,
             trialEndDate: null,
+            isPaid: false,
         });
         // Re-schedule with new date; cancel urgent trial alert on conversion
         cancelTrialUrgentAlert(sub.id).catch(console.warn);
-        const updated: Subscription = { ...sub, nextBillingDate: Timestamp.fromDate(next), isTrial: false, trialEndDate: null };
+        const updated: Subscription = { ...sub, nextBillingDate: Timestamp.fromDate(next), isTrial: false, trialEndDate: null, isPaid: false };
         scheduleRenewalAlert(updated).catch(console.warn);
+    };
+
+    /** Mark sub as paid for the current cycle */
+    const markAsPaid = async (userId: string, subId: string) => {
+        return updateDoc(doc(db, `users/${userId}/subscriptions`, subId), {
+            isPaid: true,
+        });
     };
 
     /** Soft-cancel: moves sub to History */
@@ -134,5 +144,6 @@ export function useSubscriptions(userId?: string) {
         renewSubscription,
         cancelSubscription,
         restoreSubscription,
+        markAsPaid,
     };
 }

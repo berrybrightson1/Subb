@@ -1,12 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { AlertCircle, CheckCircle2, Clock, CreditCard, Ghost, Lock, Plus, RotateCcw, Search, Smartphone, Target, Tv, X } from 'lucide-react-native';
+import { AlertCircle, CheckCircle2, Clock, CreditCard, Ghost, Lock, Plus, RotateCcw, Search, Smartphone, Target, Tv, X, MoreHorizontal } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DonutChart } from '../../components/DonutChart';
 import { SubscriptionActionSheet } from '../../components/SubscriptionActionSheet';
+import { SubscriptionMenuSheet } from '../../components/SubscriptionMenuSheet';
 import { Text } from '../../components/Text';
 import { IncognitoText } from '../../components/ui/IncognitoText';
 import { useAppSettings } from '../../contexts/AppContext';
@@ -19,7 +20,7 @@ import { calculateDaysRemaining, flagGhostSub, formatCurrency, hoursUntil } from
 
 export default function SubscriptionsScreen() {
     const { user, loading: authLoading } = useAuth();
-    const { subscriptions, loading: subsLoading, renewSubscription, cancelSubscription, restoreSubscription } = useSubscriptions(user?.uid);
+    const { subscriptions, loading: subsLoading, renewSubscription, cancelSubscription, restoreSubscription, markAsPaid } = useSubscriptions(user?.uid);
     const { colors, currency } = useAppSettings();
     const { incognito } = useIncognito();
     const insets = useSafeAreaInsets();
@@ -28,6 +29,7 @@ export default function SubscriptionsScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchVisible, setSearchVisible] = useState(false);
     const [actionSub, setActionSub] = useState<Subscription | null>(null);
+    const [menuSub, setMenuSub] = useState<Subscription | null>(null);
 
     const { isPro } = useIsPro();
     const [budget, setBudget] = useState(0);
@@ -99,7 +101,7 @@ export default function SubscriptionsScreen() {
     return (
         <Animated.View style={[s.container, screenStyle]}>
             {/* Header */}
-            <View style={[s.header, { paddingTop: insets.top }]}>
+            <View style={[s.header, { paddingTop: Math.max(insets.top, 24) }]}>
                 <Text variant="display" style={s.headerTitle}>Subscriptions</Text>
                 <View style={s.headerRight}>
                     <TouchableOpacity
@@ -141,8 +143,7 @@ export default function SubscriptionsScreen() {
                 {/* ── ANALYTICS section ── */}
                 <Text variant="display" style={s.sectionLabel}>Insights</Text>
 
-                {isPro ? (
-                    <View style={s.analyticsContainer}>
+                <View style={s.analyticsContainer}>
                         {budget > 0 ? (
                             <TouchableOpacity style={s.budgetCard} onPress={() => router.push('/budget')} activeOpacity={0.7}>
                                 <View style={s.budgetHeaderRow}>
@@ -180,18 +181,6 @@ export default function SubscriptionsScreen() {
                             <DonutChart subscriptions={current} currency={currency} compact />
                         </View>
                     </View>
-                ) : (
-                    <TouchableOpacity style={s.lockedCard} onPress={() => router.push('/paywall')} activeOpacity={0.8}>
-                        <View style={s.lockedIconBox}>
-                            <Lock color="#fff" size={24} strokeWidth={2} />
-                        </View>
-                        <Text variant="display" style={s.lockedTitle}>Unlock Insights</Text>
-                        <Text variant="sans" style={s.lockedSub}>Get advanced analytics, category breakdowns, and budgeting tools with Subb Pro.</Text>
-                        <View style={s.lockedBtn}>
-                            <Text variant="brand" style={s.lockedBtnText}>Upgrade to Pro</Text>
-                        </View>
-                    </TouchableOpacity>
-                )}
 
                 {/* ── CURRENT section ── */}
                 <Text variant="display" style={[s.sectionLabel, { marginTop: 24 }]}>Current</Text>
@@ -206,19 +195,27 @@ export default function SubscriptionsScreen() {
                         {current.map(sub => {
                             const isPending = sub.status === 'pending_action';
                             const daysLeft = calculateDaysRemaining(sub.isTrial ? sub.trialEndDate : sub.nextBillingDate);
-                            const isUrgent = !isPending && daysLeft >= 0 && daysLeft <= 3;
+                            const isOverdue = !isPending && daysLeft < 0;
+                            const isDueSoon = !isPending && !isOverdue && daysLeft <= 3;
                             const progress = getCycleProgress(sub);
                             const isGhost = flagGhostSub(sub.lastActivityDate);
                             const trialHoursLeft = sub.isTrial ? hoursUntil(sub.nextBillingDate) : 0;
                             const showTrialBadge = sub.isTrial && daysLeft <= 2;
 
-                            const cardBg = isPending
-                                ? 'rgba(245,158,11,0.08)'
-                                : isUrgent ? 'rgba(239,68,68,0.08)' : colors.card;
-                            const cardBorder = isPending
-                                ? 'rgba(245,158,11,0.3)'
-                                : isUrgent ? 'rgba(239,68,68,0.3)' : 'transparent';
-                            const accentColor = isPending ? '#F59E0B' : isUrgent ? '#EF4444' : '#3B82F6';
+                            // Distinct colors: amber = due soon, red = overdue
+                            const cardBg = sub.isPaid
+                                ? 'rgba(16,185,129,0.08)'
+                                : isPending
+                                    ? 'rgba(245,158,11,0.08)'
+                                    : isOverdue ? 'rgba(239,68,68,0.08)'
+                                        : isDueSoon ? 'rgba(251,146,60,0.08)' : colors.card;
+                            const cardBorder = sub.isPaid
+                                ? 'rgba(16,185,129,0.3)'
+                                : isPending
+                                    ? 'rgba(245,158,11,0.3)'
+                                    : isOverdue ? 'rgba(239,68,68,0.3)'
+                                        : isDueSoon ? 'rgba(251,146,60,0.3)' : 'transparent';
+                            const accentColor = sub.isPaid ? '#10B981' : isPending ? '#F59E0B' : isOverdue ? '#EF4444' : isDueSoon ? '#FB923C' : '#3B82F6';
 
                             return (
                                 <TouchableOpacity
@@ -228,52 +225,80 @@ export default function SubscriptionsScreen() {
                                     activeOpacity={0.75}
                                 >
                                     <View style={s.cardHeader}>
-                                        <View style={[s.cardIcon, { backgroundColor: isPending ? 'rgba(245,158,11,0.15)' : colors.cardAlt }]}>
-                                            {getServiceIcon(sub.name, isPending ? '#F59E0B' : isUrgent ? '#EF4444' : colors.text)}
+                                        <View style={[s.cardIcon, {
+                                            backgroundColor: isPending ? 'rgba(245,158,11,0.15)'
+                                                : isOverdue ? 'rgba(239,68,68,0.12)'
+                                                    : isDueSoon ? 'rgba(251,146,60,0.12)' : colors.cardAlt
+                                        }]}>
+                                            {getServiceIcon(sub.name,
+                                                isPending ? '#F59E0B'
+                                                : isOverdue ? '#EF4444'
+                                                : isDueSoon ? '#FB923C' : colors.text)}
                                         </View>
                                         <View style={s.cardInfo}>
-                                            <View style={s.cardNameRow}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                                 <IncognitoText
                                                     variant="brand"
                                                     style={[
                                                         s.cardName,
-                                                        (isPending || isUrgent) && { color: isPending ? '#F59E0B' : '#EF4444' }
+                                                        !sub.isPaid && (
+                                                            isPending ? { color: '#F59E0B' }
+                                                            : isOverdue ? { color: '#EF4444' }
+                                                            : isDueSoon ? { color: '#FB923C' }
+                                                            : {}
+                                                        )
                                                     ]}
                                                     incognito={incognito}
                                                     numberOfLines={1}
                                                 >
                                                     {sub.name}
                                                 </IncognitoText>
-                                                {isGhost && (
-                                                    <TouchableOpacity
-                                                        onPress={() => router.push(`/ghost-insight?subId=${sub.id}`)}
-                                                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                                                    >
-                                                        <Ghost color="#64748B" size={13} strokeWidth={2} />
-                                                    </TouchableOpacity>
-                                                )}
                                             </View>
-                                            <Text variant="sans" style={s.cardBilling}>
+                                            <Text variant="sans" style={[s.cardBilling, !sub.isPaid && (
+                                                isPending ? { color: '#F59E0B' }
+                                                : isOverdue ? { color: '#EF4444' }
+                                                : isDueSoon ? { color: '#FB923C' }
+                                                : {}
+                                            )]}>
                                                 {isPending
                                                     ? (sub.isTrial ? 'Trial ended — action needed' : 'Overdue — action needed')
-                                                    : daysLeft < 0 ? 'Overdue'
+                                                    : isOverdue ? 'Overdue'
                                                         : daysLeft === 0 ? 'Due today'
                                                             : `Billing in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`
                                                 }
                                             </Text>
                                         </View>
                                         <View style={s.cardRight}>
-                                            <IncognitoText
-                                                variant="sansBold"
-                                                style={[
-                                                    s.cardCost,
-                                                    (isPending || isUrgent) && { color: isPending ? '#F59E0B' : '#EF4444' }
-                                                ]}
-                                                incognito={incognito}
-                                            >
-                                                {formatCurrency(sub.cost, currency)}
-                                            </IncognitoText>
-                                            <Text variant="sans" style={s.cardFreq}>/ {sub.billingCycle}</Text>
+                                            {sub.isPaid ? (
+                                                <>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16,185,129,0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+                                                        <CheckCircle2 color="#10B981" size={14} strokeWidth={2.5} />
+                                                        <Text variant="brand" style={{ fontSize: 13, color: '#10B981', marginLeft: 4 }}>PAID</Text>
+                                                    </View>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 4 }}>
+                                                        <IncognitoText variant="sans" style={{ color: colors.muted, fontSize: 13 }} incognito={incognito}>
+                                                            {formatCurrency(sub.cost, currency)}
+                                                        </IncognitoText>
+                                                        <Text variant="sans" style={[s.cardFreq, { marginTop: 0, marginLeft: 2, fontSize: 12 }]}>/ {sub.billingCycle}</Text>
+                                                    </View>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                      <IncognitoText
+                                                          variant="sansBold"
+                                                          style={[
+                                                              s.cardCost,
+                                                              (isPending || isOverdue || isDueSoon) && !sub.isPaid && { color: isPending ? '#F59E0B' : isOverdue ? '#EF4444' : '#FB923C' }
+                                                          ]}
+                                                          incognito={incognito}
+                                                      >
+                                                          {formatCurrency(sub.cost, currency)}
+                                                      </IncognitoText>
+                                                    </View>
+                                                    <Text variant="sans" style={s.cardFreq}>/ {sub.billingCycle}</Text>
+                                                </>
+                                            )}
                                             {/* Trial countdown or label */}
                                             {showTrialBadge && !isPending && (
                                                 <View style={s.trialBadge}>
@@ -288,6 +313,13 @@ export default function SubscriptionsScreen() {
                                                     <Text variant="brand" style={s.trialLabelText}>TRIAL</Text>
                                                 </View>
                                             )}
+                                            <TouchableOpacity
+                                                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                                                onPress={() => setMenuSub(sub)}
+                                                style={{ marginTop: 8 }}
+                                            >
+                                                <MoreHorizontal color={colors.muted} size={18} />
+                                            </TouchableOpacity>
                                         </View>
                                     </View>
 
@@ -355,7 +387,6 @@ export default function SubscriptionsScreen() {
 
             </ScrollView>
 
-            {/* Action Sheet for pending_action subs */}
             <SubscriptionActionSheet
                 visible={actionSub !== null}
                 sub={actionSub}
@@ -363,6 +394,14 @@ export default function SubscriptionsScreen() {
                 onRenew={(sub) => renewSubscription(user.uid, sub)}
                 onCancel={(subId) => cancelSubscription(user.uid, subId)}
                 onClose={() => setActionSub(null)}
+            />
+
+            <SubscriptionMenuSheet
+                visible={menuSub !== null}
+                sub={menuSub}
+                onPaid={() => menuSub && markAsPaid(user.uid, menuSub.id)}
+                onRenew={() => menuSub && renewSubscription(user.uid, menuSub)}
+                onClose={() => setMenuSub(null)}
             />
 
         </Animated.View>

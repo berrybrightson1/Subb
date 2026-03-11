@@ -15,6 +15,8 @@ import {
   Smartphone,
   Tv,
   X,
+  MoreHorizontal,
+  CheckCircle2,
 } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -30,6 +32,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DonutChart } from '../../components/DonutChart';
 import { GhostInsightModal } from '../../components/GhostInsightModal';
 import { SubscriptionActionSheet } from '../../components/SubscriptionActionSheet';
+import { SubscriptionMenuSheet } from '../../components/SubscriptionMenuSheet';
 import { Text } from '../../components/Text';
 import { UserAvatar } from '../../components/UserAvatar';
 import { IncognitoText } from '../../components/ui/IncognitoText';
@@ -46,12 +49,13 @@ export default function SubscriptionsScreen() {
   const insets = useSafeAreaInsets();
   const { user, loading: authLoading } = useAuth();
   const { isPro } = useIsPro(user?.uid);
-  const { subscriptions, loading: subsLoading, renewSubscription, cancelSubscription } = useSubscriptions(user?.uid);
+  const { subscriptions, loading: subsLoading, renewSubscription, cancelSubscription, markAsPaid } = useSubscriptions(user?.uid);
   const { colors, currency, taxEnabled, taxRate } = useAppSettings();
   const { incognito, enableIncognito, disableIncognito } = useIncognito();
   const router = useRouter();
   const [notifVisible, setNotifVisible] = useState(false);
   const [actionSub, setActionSub] = useState<Subscription | null>(null);
+  const [menuSub, setMenuSub] = useState<Subscription | null>(null);
   const [avatarId, setAvatarId] = useState<string | null>(null);
   const [ghostSub, setGhostSub] = useState<Subscription | null>(null);
   // Track which sub IDs have already fired a haptic on entrance
@@ -137,7 +141,7 @@ export default function SubscriptionsScreen() {
       <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
-        <View style={[s.header, { paddingTop: insets.top }]}>
+        <View style={[s.header, { paddingTop: Math.max(insets.top, 24) }]}>
           <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} activeOpacity={0.8}>
             <UserAvatar
               avatarId={avatarId}
@@ -161,14 +165,7 @@ export default function SubscriptionsScreen() {
             {/* Calculator */}
             <TouchableOpacity
               style={s.iconBtn}
-              onPress={() => {
-                if (!isPro) {
-                  toast.info('Subb Calc is a Pro feature');
-                  router.push('/paywall');
-                  return;
-                }
-                router.push('/calc');
-              }}
+              onPress={() => router.push('/calc')}
             >
               <Calculator color={colors.text} size={20} />
             </TouchableOpacity>
@@ -228,10 +225,11 @@ export default function SubscriptionsScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.horizontalScroll} contentContainerStyle={s.horizontalContent}>
             {upcomingSubs.map((sub) => {
               const days = calculateDaysRemaining(sub.isTrial ? sub.trialEndDate : sub.nextBillingDate);
+              const isPaidColor = '#10B981';
               return (
                 <TouchableOpacity
                   key={sub.id}
-                  style={[s.upcomingCard, { backgroundColor: sub.isTrial ? colors.danger : '#EF4444' }]}
+                  style={[s.upcomingCard, { backgroundColor: sub.isPaid ? isPaidColor : sub.isTrial ? colors.danger : '#EF4444' }]}
                   onPress={() => router.push(`/sub/${sub.id}`)}
                   activeOpacity={0.8}
                 >
@@ -240,7 +238,7 @@ export default function SubscriptionsScreen() {
                       {getServiceIcon(sub.name, '#fff')}
                     </View>
                     <Text variant="brand" style={[s.upcomingDays, { color: 'rgba(255,255,255,0.8)' }]}>
-                      {days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days}d`}
+                      {sub.isPaid ? 'PAID' : days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days}d`}
                     </Text>
                   </View>
                   <IncognitoText variant="brand" style={[s.upcomingName, { color: '#FFFFFF' }]} incognito={incognito} numberOfLines={1}>
@@ -295,15 +293,15 @@ export default function SubscriptionsScreen() {
                   onPress={() => isPending ? setActionSub(sub) : router.push(`/sub/${sub.id}`)}
                   activeOpacity={0.7}
                 >
-                  <View style={[s.subIconBox, { backgroundColor: isPending ? 'rgba(245,158,11,0.1)' : colors.cardAlt }]}>
-                    {getServiceIcon(sub.name, isPending ? '#F59E0B' : isUrgent ? colors.danger : colors.text)}
+                  <View style={[s.subIconBox, { backgroundColor: sub.isPaid ? 'rgba(16,185,129,0.1)' : isPending ? 'rgba(245,158,11,0.1)' : colors.cardAlt }]}>
+                    {getServiceIcon(sub.name, sub.isPaid ? '#10B981' : isPending ? '#F59E0B' : isUrgent ? colors.danger : colors.text)}
                   </View>
 
                   <View style={s.subInfo}>
                     <View style={s.subNameRow}>
                       <IncognitoText
                         variant="brand"
-                        style={[s.subName, { color: isPending ? '#F59E0B' : colors.text }]}
+                        style={[s.subName, { color: isPending && !sub.isPaid ? '#F59E0B' : colors.text }]}
                         incognito={incognito}
                         numberOfLines={1}
                       >
@@ -331,9 +329,21 @@ export default function SubscriptionsScreen() {
                   </View>
 
                   <View style={s.subRight}>
-                    <IncognitoText variant="sansBold" style={[s.subPrice, { color: colors.text }]} incognito={incognito}>
-                      {formatCurrency(sub.cost, currency)}
-                    </IncognitoText>
+                    {sub.isPaid ? (
+                      <>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16,185,129,0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+                          <CheckCircle2 color="#10B981" size={12} strokeWidth={2.5} />
+                          <Text variant="brand" style={{ fontSize: 11, color: '#10B981', marginLeft: 4 }}>PAID</Text>
+                        </View>
+                        <IncognitoText variant="sans" style={{ color: colors.muted, fontSize: 12, marginTop: 4 }} incognito={incognito}>
+                          {formatCurrency(sub.cost, currency)}
+                        </IncognitoText>
+                      </>
+                    ) : (
+                      <IncognitoText variant="sansBold" style={[s.subPrice, { color: colors.text }]} incognito={incognito}>
+                        {formatCurrency(sub.cost, currency)}
+                      </IncognitoText>
+                    )}
                     {/* Trial countdown badge */}
                     {showTrialBadge && !isPending && (
                       <View style={s.trialBadge}>
@@ -355,6 +365,13 @@ export default function SubscriptionsScreen() {
                         <Text variant="brand" style={s.urgentText}>FIX</Text>
                       </View>
                     )}
+                    <TouchableOpacity
+                       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                       onPress={() => setMenuSub(sub)}
+                       style={{ marginLeft: 6 }}
+                    >
+                      <MoreHorizontal color={colors.muted} size={18} />
+                    </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
               </Animated.View>
@@ -369,11 +386,6 @@ export default function SubscriptionsScreen() {
 
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity style={s.fab} onPress={() => router.push('/add')}>
-        <Plus color="#fff" size={28} />
-      </TouchableOpacity>
-
       {/* Action Sheet for pending_action subs */}
       <SubscriptionActionSheet
         visible={actionSub !== null}
@@ -382,6 +394,14 @@ export default function SubscriptionsScreen() {
         onRenew={(sub) => renewSubscription(user.uid, sub)}
         onCancel={(subId) => cancelSubscription(user.uid, subId)}
         onClose={() => setActionSub(null)}
+      />
+
+      <SubscriptionMenuSheet
+        visible={menuSub !== null}
+        sub={menuSub}
+        onPaid={() => menuSub && markAsPaid(user.uid, menuSub.id)}
+        onRenew={() => menuSub && renewSubscription(user.uid, menuSub)}
+        onClose={() => setMenuSub(null)}
       />
 
       {/* Ghost Insight Modal */}
@@ -532,12 +552,6 @@ function makeStyles(colors: ThemeColors) {
       width: '100%',
       backgroundColor: 'rgba(255,255,255,0.1)',
       borderRadius: 4,
-    },
-    fab: {
-      position: 'absolute', bottom: 32, right: 24,
-      width: 56, height: 56, borderRadius: 28,
-      backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
-      shadowColor: colors.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
     },
     // Modal
     modalOverlay: { flex: 1, justifyContent: 'flex-end' },

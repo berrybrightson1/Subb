@@ -169,11 +169,6 @@ export default function AddSubscriptionScreen() {
         const parsedCost = parseFloat(cost);
         if (!cost || isNaN(parsedCost) || parsedCost <= 0) { toast.error('Enter a valid price'); return; }
         if (!user) { toast.error('You must be logged in'); return; }
-        if (!isPro && activeSubCount >= FREE_SUB_LIMIT) {
-            toast.info('Upgrade to Subb Pro for unlimited subscriptions');
-            router.push('/paywall');
-            return;
-        }
         try {
             await addSubscription(user.uid, {
                 name: name.trim(), cost: parsedCost, billingCycle: cycle, category, isTrial,
@@ -275,7 +270,6 @@ export default function AddSubscriptionScreen() {
                     {sep}
                     <View style={s.row}>
                         <Text variant="sans" style={[s.label, { color: colors.text }]}>Reminder</Text>
-                        {isPro ? (
                             <View style={s.rowRight}>
                                 <TextInput
                                     style={[s.input, { color: colors.text, textAlign: 'right', width: 32 }]}
@@ -286,12 +280,6 @@ export default function AddSubscriptionScreen() {
                                 />
                                 <Text variant="sans" style={{ color: colors.muted, fontSize: 14 }}>days before</Text>
                             </View>
-                        ) : (
-                            <TouchableOpacity style={s.rowRight} onPress={() => { toast.info('Custom alerts are a Pro feature'); router.push('/paywall'); }}>
-                                <Text variant="sans" style={{ color: colors.muted, fontSize: 14 }}>1 day</Text>
-                                <Lock size={13} color={colors.muted} />
-                            </TouchableOpacity>
-                        )}
                     </View>
                 </View>
 

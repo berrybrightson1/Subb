@@ -23,17 +23,11 @@ import { toast } from '../lib/toast';
 // Keep splash visible until fonts are ready
 SplashScreen.preventAutoHideAsync().catch(() => { });
 
-// ─── RevenueCat lazy init (no-ops in Expo Go) ─────────────────────────────────
-let Purchases: typeof import('react-native-purchases').default | null = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  Purchases = require('react-native-purchases').default;
-} catch {
-  // Not available in Expo Go / web
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `textarea, input { outline: none !important; }`;
+  document.head.append(style);
 }
-
-const REVENUECAT_API_KEY =
-  process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? 'test_bKPpVzaW6jDWjcvrssAiFNgJPhQ';
 
 // ─── Foreground notification handler ─────────────────────────────────────────
 Notifications.setNotificationHandler({
@@ -98,18 +92,17 @@ export default function RootLayout() {
   // Step 2: navigate + init RevenueCat after mount
   useEffect(() => {
     if (!isReady) return;
-    router.replace('/onboarding');
 
-    // Init RevenueCat once at app startup (idempotent — safe to call multiple times)
-    if (Purchases) {
+    if (Platform.OS === 'web') {
       try {
-        if (!Purchases.isConfigured) {
-          Purchases.configure({ apiKey: REVENUECAT_API_KEY });
-        }
-      } catch {
-        // Silently ignore — useIsPro hook will re-configure if needed
-      }
+        const style = document.createElement('style');
+        style.textContent = `
+          textarea, input { outline: none !important; }
+        `;
+        document.head.appendChild(style);
+      } catch (err) {}
     }
+
   }, [isReady]);
 
   // Step 3: notification listeners
